@@ -1,91 +1,57 @@
+# 🎓 AI-Tutor-Agent: 基于大模型智能体的助教系统
 
-# 略课 SkimClass（一键本地版）
+> **哈尔滨工业大学 - 大一年度项目立项作品** > 打造“上课能用、课后好复习”的个性化 AI 伴学助手。
 
-这是一个尽量「开箱即用」的课堂智能助教原型：
+## 📖 项目介绍 (Introduction)
 
-- 在本地后台自动截取屏幕，跟随你上网课 / 线下上课的投屏画面；
-- 下课后一键生成本节课的 Outline（分小节总结 + 学生可能的困惑）；
-- 基于课堂内容回答问题、生成课后小测、学习报告以及拓展学习建议；
-- 所有数据都存放在本机 `backend/data/` 目录，不上传到云端。
+本项目是一个面向大学课堂与在线课程的智能助教 Agent。它通过**多模态感知技术**（屏幕视觉 + 音频听觉），实时“旁听”用户的网课或线下课程，并利用 **Doubao-1.5-Vision** 等大模型能力，自动生成结构化的学习报告、知识图谱及课后习题。
 
-## 一、使用前提
+与传统的“死板”录屏软件不同，本系统具备**视觉认知能力**，能够像人类助教一样理解 PPT 内容、忽略无关干扰界面，并根据立项报告中的教学理论提供“边学边测”的反馈机制。
 
-- 电脑已安装 **Python 3.10+**；
-- 系统：Windows 或 macOS（Linux 也可以，但需要自己在终端运行 uvicorn）。
+## ✨ 核心功能 (Features)
 
-## 二、一键启动
+* **👁️ 智能视觉感知**：
+    * 自动截取课程 PPT 关键帧（基于图像哈希去重）。
+    * **视觉防火墙**：内置 Prompt 级抗干扰机制，自动过滤系统控制台、IDE 等非课程画面，专注课程内容。
+* **🧠 结构化笔记生成**：
+    * 生成 Markdown 格式的**知识结构图谱**。
+    * **有据可查**：核心知识点讲解自动标注来源截图（如“参考 [图3]”）。
+* **📝 自动化测验 (Quiz)**：
+    * 根据本节课内容，自动生成 3 道单项选择题，并附带正确答案与详细解析，实现“边学边测”。
+* **💬 上下文感知问答**：
+    * 课后答疑模式，AI 助教基于本节课的视觉记忆回答用户提问。
 
-1. 解压本项目压缩包，例如解压到 `~/SkimClass_OneClick`；
-2. **macOS**：
-   - 右键 `start_mac.command` → 打开方式选择「终端」；
-   - 如果提示权限问题，可以在终端执行一次：
+## 🛠️ 技术栈 (Tech Stack)
 
-     ```bash
-     chmod +x start_mac.command
-     ```
+* **前端交互**: [Streamlit](https://streamlit.io/)
+* **端侧采集**: `mss` (屏幕录制), `pyaudio` (音频流处理)
+* **大模型基座**: 火山引擎 (Volcengine) Doubao-1.5-Vision-Pro
+* **图像处理**: Pillow, ImageHash
 
-     之后直接双击即可。
-3. **Windows**：
-   - 双击 `start_windows.bat`；
+🖥️ 使用指南
+1.启动采集：点击左侧侧边栏的 “🚀 开始上课” 按钮。
+2.专注听课：请务必将网课视频窗口置于屏幕最前方（或全屏播放），系统会自动捕获 PPT 内容。
+3.生成报告：课程结束后点击 “⏹ 下课”，系统将自动上传数据并生成包含习题的学习报告。
 
-首次运行时，脚本会自动：
+## 🚀 快速开始 (Quick Start)
+### 1. 环境准备
+确保你的电脑已安装 Python 3.8+。
 
-- 创建本地虚拟环境 `.venv`；
-- 安装 `backend/requirements.txt` 中的依赖；
-- 启动后端服务，并自动打开浏览器访问：`http://127.0.0.1:7860`。
+```bash
+# 克隆项目
+git clone https://github.com/LostAkashi/SkimClass.git
+cd SkimClass
 
-以后再次双击脚本就会直接启动，不需要重新安装依赖。
+# 安装依赖
+pip install -r requirements.txt
 
-## 三、首次配置大模型
+2. 配置 API 密钥
+本项目依赖火山引擎（Volcengine）的大模型服务。 请打开 doubao_api.py，填入你自己的密钥：
+ASR_APPID = "你的_APPID"
+ASR_TOKEN = "你的_TOKEN"
+LLM_API_KEY = "你的_API_KEY"
+LLM_ENDPOINT = "你的_ENDPOINT_ID"
 
-打开页面右上角的「设置大模型」，填写：
-
-- **API Base**：例如 `https://api.deepseek.com`、豆包的 OpenAI 协议地址等；
-- **Model**：例如 `deepseek-chat`；
-- **API Key**：从对应平台复制。
-
-保存后即可开始使用。
-
-## 四、课堂使用流程
-
-1. 上课前：
-   - 在页面左侧「开始一节课」中填写课程名称、选择采集模式；
-   - 点击 **Start Session**，系统开始后台截屏（轻量模式除外）。
-
-2. 下课后：
-   - 点击 **Stop** 停止采集；
-   - 点击 **生成 Outline** 提交总结任务；
-   - 等一两分钟后，点击右上角 **刷新** 查看 Outline。
-
-3. 之后你可以：
-   - 在「提问 / 解惑」中就本节课提问；
-   - 使用「课后小测」生成几道选择题自测；
-   - 在「拓展学习建议」里获取延伸阅读与预习建议；
-   - 在「学习报告」中生成一份可复制到笔记里的复习报告。
-
-## 五、目录结构简要说明
-
-```text
-SkimClass_OneClick/
-  start_mac.command       # macOS 启动脚本
-  start_windows.bat       # Windows 启动脚本
-  backend/
-    requirements.txt
-    skimclass/
-      config.py           # 大模型配置与本地 data 目录
-      db.py               # SQLite 存储（session / 截图索引 / 小节 / 小测）
-      capture.py          # 后台截屏线程
-      llm_client.py       # 调用 OpenAI 协议兼容接口
-      summarization.py    # 生成 Outline / 问答 / 小测 / 报告 / 拓展建议
-      web.py              # FastAPI 应用 + 静态页面
-      static/
-        index.html        # 前端页面
-        style.css         # 简单样式
-        app.js            # 页面逻辑（通过 fetch 调用后端）
-```
-
-在这个基础上，你可以继续拓展：
-
-- 加入音频录制 + 语音转写，实现「画面 + 语音」联合总结；
-- 接入教材 PDF / 课件 PPT 做真正的知识库检索；
-- 做多课程管理、成绩追踪、错题本等更完整的学习分析功能。
+3. 运行系统
+在终端中执行：
+streamlit run app.py

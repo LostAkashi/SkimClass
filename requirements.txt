@@ -1,0 +1,8 @@
+streamlit
+pyaudio
+mss
+Pillow
+imagehash
+openai
+requests
+volcengine
