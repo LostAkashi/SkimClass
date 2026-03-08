@@ -16,6 +16,7 @@ pip install -r requirements.txt
 2. 第二步：运行应用
 
 ```bash
+cd ~/SkimClass-main
 streamlit run app.py
 ```
 
