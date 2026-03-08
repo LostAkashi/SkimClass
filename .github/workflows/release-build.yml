@@ -40,7 +40,7 @@ jobs:
           py -m pip install --upgrade pip
           py -m pip install -r requirements.txt pyinstaller
       - name: Build exe
-        run: build_windows_exe.bat
+        run: .\build_windows_exe.bat
       - name: Upload windows artifact
         uses: actions/upload-artifact@v4
         with:
