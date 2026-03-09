@@ -4,25 +4,48 @@
 SkimClass 是一款专为大学课堂与在线课程设计的“上课能用、课后好复习”的智能助教系统。它能够通过多模态感知技术自动采集课堂信息，结合大语言模型（LLM）与检索增强生成（RAG），为学生提供实时知识总结、精准答疑、个性化测验及学习报告，打造全方位的“伴学体验”。
 
 ## 用户下载项目后如何启动
-
-1. 第一步：安装依赖
+0. 安装Python
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+winget install -e --id Python.Python.3.14
 ```
 
-2. 第二步：运行应用
+1. 创建虚拟环境
+【mac用户】：
 
 ```bash
 cd ~/SkimClass-main
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+【Windows用户】：
+
+```bash
+cd ~/SkimClass-main
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+
+2. 安装依赖
+
+```bash
+pip install -r requirements.txt
+```
+
+3. 运行应用并开始使用。
+
+```bash
 streamlit run app.py
 ```
 
-3. 第三步：在页面中填写 `API Key`，开始使用。
+在页面中填写 `API Key`，macOS 首次录制时在系统中允许麦克风和屏幕录制权限。
 
-4. 第四步（macOS 首次录制时）：在系统中允许麦克风和屏幕录制权限。
+
+
+
+
 
 
 
