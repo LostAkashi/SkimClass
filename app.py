@@ -274,6 +274,7 @@ with st.sidebar:
     capture_mode = st.selectbox(
         "🎚️ 采集模式",
         ["light", "standard", "enhanced"],
+        index=2,
         format_func=lambda x: {"light": "轻模式（不录音不截图，仅资料与问答）", "standard": "标准模式（录音+关键帧）", "enhanced": "增强模式（高频关键帧+录音）"}[x],
     )
     interval = st.number_input("⏱️ 总结间隔 (分钟)", min_value=1, value=1)
