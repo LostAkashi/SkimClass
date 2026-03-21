@@ -71,7 +71,7 @@ streamlit run app.py
 
 - `app.py` / `pages/` - 应用程序主入口及各类前端页面视图。
 - `auto_capture.py` - 负责屏幕截图与音频的多模态信息自动采集与录制控制。
-- `agent.py` - 核心智能体逻辑，对接大语言模型（建议全模态总结模型qwen3-omni-flash，RAG向量模型text-embedding-v4）处理分段总结与答疑。
+- `agent.py` - 核心智能体逻辑，对接大语言模型处理分段总结与答疑。（目前仅支持阿里云百炼系列模型。建议全模态总结模型使用qwen3-omni-flash，RAG向量模型使用text-embedding-v4）
 - `db.py` - 本地数据与状态管理，负责结构化处理后数据的存储调度。
 - `data/recordings/` - 本地存放原始音视频与截图流的缓存目录（按隐私策略设计，可随时一键清除）。
 - `launcher.py` / `paths.py` - 系统启动流程控制与核心路径配置。
