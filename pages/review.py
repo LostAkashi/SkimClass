@@ -42,6 +42,58 @@ from paths import get_exports_dir, get_faiss_dir
 init_db()
 
 st.set_page_config(page_title="SkimClass - 复习中心", layout="wide", page_icon="📖")
+
+st.markdown("""
+<style>
+/* 隐藏 Streamlit 默认菜单和 Footer */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+
+/* 全局字体和布局呼吸感 */
+html, body, [class*="css"]  {
+    font-size: 1.05rem;
+}
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* 圆角平滑：输入框、下拉框、常规按钮 */
+div.stButton > button {
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+div.stTextInput > div > div > input, div.stSelectbox > div > div > div {
+    border-radius: 8px;
+}
+
+/* AI 聊天气泡样式美化 */
+[data-testid="stChatMessage"] {
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 0.5rem;
+}
+[data-testid="stChatMessage"]:nth-child(even) {
+    background-color: #f7f9fc;
+}
+
+/* 评测指标看板卡片化 */
+[data-testid="stMetric"] {
+    background-color: #ffffff;
+    border: 1px solid #e0e4e8;
+    padding: 1.2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    text-align: center;
+}
+[data-testid="stMetricValue"] {
+    color: #007bff;
+    font-weight: 700;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("📖 复习中心")
 
 DEFAULT_PUBLIC_BASE_URL = os.getenv("SKIM_PUBLIC_BASE_URL", "")
@@ -232,14 +284,8 @@ def _upsert_outline_if_needed(selected_course_id, summaries, assistant, can_call
 
 # ========== 侧边栏: API Key + 课程选择 ==========
 with st.sidebar:
-    api_key = st.text_input("🔑 API Key", type="password")
-
-    st.divider()
-    st.subheader("🤖 模型配置")
-    summary_model = st.text_input("总结模型", value="qwen3-omni-flash")
-    embedding_model = st.text_input("向量模型", value="text-embedding-v4")
-
-    st.divider()
+    st.markdown("### 🎓 SkimClass 控制台")
+    
     courses = list_courses()
     if not courses:
         st.info("还没有任何课程记录，请先去主页录制课程。")
@@ -249,25 +295,34 @@ with st.sidebar:
     selected_label = st.selectbox("📚 选择课程", list(options.keys()))
     selected_course_id = options[selected_label]
 
-    st.divider()
-    st.subheader("🛡 可信来源白名单")
-    trusted_domains = get_trusted_sources(selected_course_id)
-    trusted_text = st.text_area("域名白名单(一行一个)", value="\n".join(trusted_domains), height=100)
-    if st.button("保存白名单", use_container_width=True):
-        domains = [x.strip().lower() for x in trusted_text.replace(",", "\n").splitlines() if x.strip()]
-        replace_trusted_sources(selected_course_id, domains)
-        trusted_domains = get_trusted_sources(selected_course_id)
-        st.success("白名单已更新")
+    # --- 低频/底层配置区（折叠隐藏），与主页同步 ---
+    with st.expander("⚙️ 高级与系统设置", expanded=False):
+        api_key = st.text_input("🔑 API Key", type="password")
 
-    st.divider()
-    st.subheader("🧾 可信问答策略")
-    allowed_sources = st.multiselect(
-        "允许引用来源",
-        ["textbook", "notes"],
-        default=["textbook", "notes"],
-    )
-    strict_evidence_mode = st.checkbox("低置信度时拒答", value=True)
-    max_retrieval_score = st.number_input("检索最大距离阈值", min_value=0.1, max_value=5.0, value=1.2, step=0.1)
+        st.divider()
+        st.subheader("🤖 模型配置")
+        summary_model = st.text_input("总结模型", value="qwen3-omni-flash")
+        embedding_model = st.text_input("向量模型", value="text-embedding-v4")
+
+        st.divider()
+        st.subheader("🛡 可信来源白名单")
+        trusted_domains = get_trusted_sources(selected_course_id)
+        trusted_text = st.text_area("域名白名单(一行一个)", value="\n".join(trusted_domains), height=100)
+        if st.button("保存白名单", use_container_width=True):
+            domains = [x.strip().lower() for x in trusted_text.replace(",", "\n").splitlines() if x.strip()]
+            replace_trusted_sources(selected_course_id, domains)
+            trusted_domains = get_trusted_sources(selected_course_id)
+            st.success("白名单已更新")
+
+        st.divider()
+        st.subheader("🧾 可信问答策略")
+        allowed_sources = st.multiselect(
+            "允许引用来源",
+            ["textbook", "notes"],
+            default=["textbook", "notes"],
+        )
+        strict_evidence_mode = st.checkbox("低置信度时拒答", value=True)
+        max_retrieval_score = st.number_input("检索最大距离阈值", min_value=0.1, max_value=5.0, value=1.2, step=0.1)
 
 assistant = LangChainAssistant(api_key, summary_model, embedding_model) if api_key else None
 
@@ -477,17 +532,17 @@ with tab_kg:
 
         G = nx.DiGraph()
         category_colors = {
-            "concept": "#4FC3F7",
-            "formula": "#FF8A65",
-            "example": "#81C784",
+            "concept": "#0288D1",
+            "formula": "#E64A19",
+            "example": "#388E3C",
         }
         for node in kg_data["nodes"]:
-            color = category_colors.get(node.get("category", "concept"), "#90A4AE")
+            color = category_colors.get(node.get("category", "concept"), "#455A64")
             G.add_node(node["label"], color=color, title=node.get("category", "concept"))
         for edge in kg_data["edges"]:
             G.add_edge(edge["source"], edge["target"], title=edge.get("relation", ""))
 
-        net = Network(height="500px", width="100%", directed=True, bgcolor="#1e1e1e", font_color="white")
+        net = Network(height="500px", width="100%", directed=True, bgcolor="#ffffff", font_color="#333333")
         net.from_nx(G)
         net.set_options(
             """
@@ -502,10 +557,11 @@ with tab_kg:
             },
             "edges": {
                 "arrows": {"to": {"enabled": true}},
-                "font": {"size": 10, "color": "#aaaaaa"}
+                "font": {"size": 10, "color": "#666666"},
+                "color": {"color": "#cccccc", "highlight": "#888888"}
             },
             "nodes": {
-                "font": {"size": 14}
+                "font": {"size": 14, "color": "#333333"}
             }
         }
         """

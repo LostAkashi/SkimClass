@@ -36,6 +36,60 @@ init_db()
 
 st.set_page_config(layout="wide", page_title="SkimClass - 专业 RAG 助教", page_icon="🎓")
 
+# === 全局 CSS 注入与“去 Streamlit 化” ===
+st.markdown("""
+<style>
+/* 隐藏 Streamlit 默认菜单和 Footer */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+
+/* 全局字体和布局呼吸感 */
+html, body, [class*="css"]  {
+    font-size: 1.05rem;
+}
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* 圆角平滑：输入框、下拉框、常规按钮 */
+div.stButton > button {
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+div.stTextInput > div > div > input, div.stSelectbox > div > div > div {
+    border-radius: 8px;
+}
+
+/* 核心 CTA 按钮（开始录像）的美化 */
+[data-testid="stSidebar"] button[kind="primary"] {
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(255, 75, 43, 0.4);
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+}
+[data-testid="stSidebar"] button[kind="primary"]:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 16px rgba(255, 75, 43, 0.6);
+    background: linear-gradient(135deg, #ff4b2b, #ff416c);
+}
+
+/* AI 聊天气泡样式美化 */
+[data-testid="stChatMessage"] {
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 0.5rem;
+}
+[data-testid="stChatMessage"]:nth-child(even) {
+    background-color: #f7f9fc;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # === 状态初始化 ===
 if "recorder" not in st.session_state:
     st.session_state.recorder = None
@@ -261,96 +315,11 @@ def process_segments(
 
 # === 侧边栏 ===
 with st.sidebar:
-    st.header("⚙️ RAG 系统配置")
-    api_key = st.text_input("🔑 API Key", type="password")
-
-    st.divider()
-    st.subheader("🤖 模型配置")
-    summary_model = st.text_input("总结模型", value="qwen3-omni-flash")
-    embedding_model = st.text_input("向量模型", value="text-embedding-v4")
-
-    st.divider()
-    course_name = st.text_input("课程名称", "高等数学")
-    capture_mode = st.selectbox(
-        "🎚️ 采集模式",
-        ["light", "standard", "enhanced"],
-        index=2,
-        format_func=lambda x: {"light": "轻模式（不录音不截图，仅资料与问答）", "standard": "标准模式（录音+关键帧）", "enhanced": "增强模式（高频关键帧+录音）"}[x],
-    )
-    interval = st.number_input("⏱️ 总结间隔 (分钟)", min_value=1, value=1)
-    purge_raw_after_process = st.checkbox("处理后删除原始音视频", value=DEFAULT_PURGE_RAW)
-    retention_hours = st.number_input(
-        "原始数据保留时长(小时)",
-        min_value=1,
-        max_value=168,
-        value=min(max(DEFAULT_RETENTION_HOURS, 1), 168),
-    )
-    failure_retry_limit = st.number_input(
-        "分段失败重试次数",
-        min_value=1,
-        max_value=5,
-        value=min(max(DEFAULT_RETRY_LIMIT, 1), 5),
-    )
-
-    st.divider()
-    st.subheader("🚦 自动启动")
-    auto_start_enabled = st.checkbox("按计划自动开始采集", value=False)
-    auto_start_time = st.text_input("自动开始时间(HH:MM)", value=DEFAULT_AUTO_START_TIME)
-    auto_days = st.multiselect(
-        "自动启动星期",
-        ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
-        default=["周一", "周二", "周三", "周四", "周五"],
-    )
-    wifi_hint = st.text_input("Wi-Fi 名称包含(可选)", value=DEFAULT_PUBLIC_WIFI_HINT)
-
-    st.divider()
-    st.subheader("🧹 数据治理")
-    if st.button("一键清除全部原始音视频", use_container_width=True):
-        removed = _clear_all_raw_media_now()
-        st.success(f"已清除原始媒体文件 {removed} 个")
-
-    st.divider()
-    st.subheader("🧾 可信问答策略")
-    allowed_sources = st.multiselect(
-        "允许引用来源",
-        ["textbook", "notes"],
-        default=["textbook", "notes"],
-    )
-    strict_evidence_mode = st.checkbox("低置信度时拒答并提示补充依据", value=True)
-    max_retrieval_score = st.number_input("检索最大距离阈值（越小越严格）", min_value=0.1, max_value=5.0, value=1.2, step=0.1)
-
-    st.caption("教师可信来源白名单（域名，一行一个）")
-    current_whitelist = get_trusted_sources(st.session_state.current_course_id) if st.session_state.current_course_id else DEFAULT_TRUSTED_DOMAINS
-    whitelist_text = st.text_area("白名单域名", value="\n".join(current_whitelist), height=90)
-    if st.session_state.current_course_id and st.button("保存白名单"):
-        domains = [x.strip().lower() for x in whitelist_text.replace(",", "\n").splitlines() if x.strip()]
-        replace_trusted_sources(st.session_state.current_course_id, domains)
-        st.success("已更新可信来源白名单")
-
-    st.divider()
-    st.subheader("⏰ 主动提醒")
-    reminder_course_id = st.session_state.current_course_id
-    reminders = get_pending_reminders(reminder_course_id)
-    if reminders:
-        now = datetime.now()
-        show_count = min(3, len(reminders))
-        for r in reminders[:show_count]:
-            due_dt = None
-            try:
-                due_dt = datetime.fromisoformat(r["due_at"])
-            except Exception:
-                pass
-
-            due_text = r["due_at"].replace("T", " ")[:16]
-            st.caption(f"- {r['content']} | 截止 {due_text}")
-
-            # 对到期提醒只提示一次，避免每次刷新都弹窗。
-            if due_dt and due_dt <= now and r["id"] not in st.session_state.notified_reminders:
-                st.toast(f"复习提醒：{r['content']}")
-                st.session_state.notified_reminders.add(r["id"])
-    else:
-        st.caption("暂无待处理提醒")
-
+    st.markdown("### 🎓 SkimClass 控制台")
+    
+    # --- 1. 高频操作区 ---
+    course_name = st.text_input("📚 课程名称", "高等数学")
+    
     # 麦克风选择
     mic_choice = None
     mics = get_available_microphones()
@@ -362,7 +331,97 @@ with st.sidebar:
         st.warning("未检测到可用麦克风，录音可能失败。")
 
     # --- 核心 RAG 逻辑：PDF 处理 ---
-    uploaded_pdf = st.file_uploader("📚 投喂教材 (构建向量索引)", type=["pdf"])
+    uploaded_pdf = st.file_uploader("📄 投喂教材 (Upload)", type=["pdf"])
+
+    # --- 2. 低频/底层配置区（折叠隐藏） ---
+    with st.expander("⚙️ 高级与系统设置", expanded=False):
+        api_key = st.text_input("🔑 API Key", type="password")
+
+        st.divider()
+        st.subheader("🤖 模型配置")
+        summary_model = st.text_input("总结模型", value="qwen3-omni-flash")
+        embedding_model = st.text_input("向量模型", value="text-embedding-v4")
+
+        st.divider()
+        capture_mode = st.selectbox(
+            "🎚️ 采集模式",
+            ["light", "standard", "enhanced"],
+            index=2,
+            format_func=lambda x: {"light": "轻模式（仅资料与问答）", "standard": "标准模式（录音+关键帧）", "enhanced": "增强模式（高频关键帧+录音）"}[x],
+        )
+        interval = st.number_input("⏱️ 总结间隔 (分钟)", min_value=1, value=1)
+        purge_raw_after_process = st.checkbox("处理后删除原始音视频", value=DEFAULT_PURGE_RAW)
+        retention_hours = st.number_input(
+            "原始数据保留时长(小时)",
+            min_value=1,
+            max_value=168,
+            value=min(max(DEFAULT_RETENTION_HOURS, 1), 168),
+        )
+        failure_retry_limit = st.number_input(
+            "分段失败重试次数",
+            min_value=1,
+            max_value=5,
+            value=min(max(DEFAULT_RETRY_LIMIT, 1), 5),
+        )
+
+        st.divider()
+        st.subheader("🚦 自动启动")
+        auto_start_enabled = st.checkbox("按计划自动开始采集", value=False)
+        auto_start_time = st.text_input("自动开始时间(HH:MM)", value=DEFAULT_AUTO_START_TIME)
+        auto_days = st.multiselect(
+            "自动启动星期",
+            ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
+            default=["周一", "周二", "周三", "周四", "周五"],
+        )
+        wifi_hint = st.text_input("Wi-Fi 名称包含(可选)", value=DEFAULT_PUBLIC_WIFI_HINT)
+
+        st.divider()
+        st.subheader("🧹 数据治理")
+        if st.button("一键清除全部原始音视频", use_container_width=True):
+            removed = _clear_all_raw_media_now()
+            st.success(f"已清除原始媒体文件 {removed} 个")
+
+        st.divider()
+        st.subheader("🧾 可信问答策略")
+        allowed_sources = st.multiselect(
+            "允许引用来源",
+            ["textbook", "notes"],
+            default=["textbook", "notes"],
+        )
+        strict_evidence_mode = st.checkbox("低置信度时拒答并提示补充依据", value=True)
+        max_retrieval_score = st.number_input("检索最大距离阈值（越小越严格）", min_value=0.1, max_value=5.0, value=1.2, step=0.1)
+
+        st.caption("教师可信来源白名单（域名，一行一个）")
+        current_whitelist = get_trusted_sources(st.session_state.current_course_id) if st.session_state.current_course_id else DEFAULT_TRUSTED_DOMAINS
+        whitelist_text = st.text_area("白名单域名", value="\n".join(current_whitelist), height=90)
+        if st.session_state.current_course_id and st.button("保存白名单"):
+            domains = [x.strip().lower() for x in whitelist_text.replace(",", "\n").splitlines() if x.strip()]
+            replace_trusted_sources(st.session_state.current_course_id, domains)
+            st.success("已更新可信来源白名单")
+
+        st.divider()
+        st.subheader("⏰ 主动提醒")
+        reminder_course_id = st.session_state.current_course_id
+        reminders = get_pending_reminders(reminder_course_id)
+        if reminders:
+            now = datetime.now()
+            show_count = min(3, len(reminders))
+            for r in reminders[:show_count]:
+                due_dt = None
+                try:
+                    due_dt = datetime.fromisoformat(r["due_at"])
+                except Exception:
+                    pass
+
+                due_text = r["due_at"].replace("T", " ")[:16]
+                st.caption(f"- {r['content']} | 截止 {due_text}")
+
+                # 对到期提醒只提示一次，避免每次刷新都弹窗。
+                if due_dt and due_dt <= now and r["id"] not in st.session_state.notified_reminders:
+                    st.toast(f"复习提醒：{r['content']}")
+                    st.session_state.notified_reminders.add(r["id"])
+        else:
+            st.caption("暂无待处理提醒")
     if uploaded_pdf and st.session_state.vector_store is None:
         if not api_key:
             st.warning("请先输入 API Key 以初始化 Embedding 模型")
